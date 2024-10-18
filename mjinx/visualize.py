@@ -93,7 +93,10 @@ class BatchVisualizer:
     :param alpha: Transparency value for the models, defaults to 0.5.
     :param record: If True, records and saves mp4 scene recording, defaults to False.
     :param filename: Name of the file to save without extension, defaults to current datetime.
+    :param assets_dir: Directory containing asset files, defaults to an empty string.
     :param record_res: Resolution of recorded video (width, height), defaults to (1024, 1024).
+    :param compile: If True, compiles the model after initialization, defaults to True.
+    :param launch: If True, launches the viewer after compilation (if compile is True), defaults to True.
     """
 
     mjcf_model: mjcf.RootElement
@@ -151,6 +154,12 @@ class BatchVisualizer:
         raise ValueError(f"asset {asset_name} not found in {asset_root}")
 
     def compile_model(self) -> None:
+        """
+        Compile the MuJoCo model.
+
+        This method processes the MJCF model, handles assets, and creates the MjModel and MjData instances.
+        It should be called before launching the viewer if the model wasn't compiled during initialization.
+        """
         edited_xml, assets = self.remove_high_level_body_tags(
             self.mjcf_model.to_xml_string(),
             os.path.split(self.model_path)[0] if self.assets_dir == "" else self.assets_dir,
@@ -161,6 +170,13 @@ class BatchVisualizer:
         self.mj_data = mj.MjData(self.mj_model)
 
     def launch(self) -> None:
+        """
+        Launch the MuJoCo viewer.
+
+        This method initializes the viewer and, if recording is enabled, sets up the renderer.
+        It should be called after compiling the model if the viewer wasn't launched during initialization.
+        """
+
         # Initializing visualization
         self.mj_viewer = viewer.launch_passive(
             self.mj_model,
@@ -189,6 +205,7 @@ class BatchVisualizer:
 
         :param mjcf_str: The MJCF XML string to process.
         :param model_directory: The directory containing the model and its assets.
+        :param assets_dir: Directory containing asset files, defaults to an empty string.
         :return: A tuple containing the modified XML string and a dictionary of asset data.
         """
         # Parse the XML string
