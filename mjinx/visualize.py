@@ -96,6 +96,8 @@ class BatchVisualizer:
     :param record_res: Resolution of recorded video (width, height), defaults to (1024, 1024).
     """
 
+    mjcf_model: mjcf.RootElement
+
     def __init__(
         self,
         model_path: str,
@@ -104,31 +106,34 @@ class BatchVisualizer:
         alpha: float = 0.5,
         record: bool = False,
         filename: str = "",
+        assets_dir: str = "",
         record_res: tuple[int, int] = (1024, 1024),
+        compile: bool = True,
+        launch: bool = True,
     ):
         self.n_models = n_models
 
         # Generate the model, by stacking several provided models
-        self.mj_model = self._generate_mj_model(model_path, n_models, geom_group, alpha, record_res)
-        self.mj_data = mj.MjData(self.mj_model)
+        self._generate_mj_model(model_path, n_models, geom_group, alpha, record_res)
 
-        # Initializing visualization
-        self.mj_viewer = viewer.launch_passive(
-            self.mj_model,
-            self.mj_data,
-            show_left_ui=False,
-            show_right_ui=False,
-        )
+        # Assets handling
+        self.model_path = model_path
+        self.assets_dir = assets_dir
+
         # For markers
         self.n_markers: int = 0
         self.marker_data: dict[str, MarkerData] = {}
 
         # Recording the visualization
         self.record = record
+        self.record_res = record_res
         self.filename = filename
         self.frames: list = []
-        if self.record:
-            self.mj_renderer = mj.Renderer(self.mj_model, width=record_res[0], height=record_res[1])
+
+        if compile:
+            self.compile_model()
+        if compile and launch:
+            self.launch()
 
     def __find_asset(self, asset_root: str, asset_name: str) -> str:
         """
@@ -145,7 +150,32 @@ class BatchVisualizer:
                 return os.path.join(root, asset_name)
         raise ValueError(f"asset {asset_name} not found in {asset_root}")
 
-    def remove_high_level_body_tags(self, mjcf_str: str, model_directory: str) -> tuple[str, dict[str, bytes]]:
+    def compile_model(self) -> None:
+        edited_xml, assets = self.remove_high_level_body_tags(
+            self.mjcf_model.to_xml_string(),
+            os.path.split(self.model_path)[0] if self.assets_dir == "" else self.assets_dir,
+        )
+        # Build and return mujoco model
+
+        self.mj_model = mj.MjModel.from_xml_string(edited_xml, assets=assets)
+        self.mj_data = mj.MjData(self.mj_model)
+
+    def launch(self) -> None:
+        # Initializing visualization
+        self.mj_viewer = viewer.launch_passive(
+            self.mj_model,
+            self.mj_data,
+            show_left_ui=False,
+            show_right_ui=False,
+        )
+        if self.record:
+            self.mj_renderer = mj.Renderer(self.mj_model, width=self.record_res[0], height=self.record_res[1])
+
+    def remove_high_level_body_tags(
+        self,
+        mjcf_str: str,
+        assets_directory: str,
+    ) -> tuple[str, dict[str, bytes]]:
         """
         Remove high-level body tags from the MJCF XML string and process mesh assets.
 
@@ -178,19 +208,19 @@ class BatchVisualizer:
                     worldbody.remove(child)
 
         # Try to find and load meshes from the xml file directory
-        mesh_elements = root.findall(".//mesh")
+        elements_to_replace = root.findall(".//mesh") + root.findall(".//texture")
         assets: dict[str, bytes] = {}
-        for mesh in mesh_elements:
-            file_attr = mesh.get("file")
+        for element in elements_to_replace:
+            file_attr = element.get("file")
             if file_attr:
                 # Remove the hash from the file attribute
                 new_file_attr = file_attr[: file_attr.find("-")] + file_attr[file_attr.rfind(".") :]
 
-                asset_path = self.__find_asset(model_directory, new_file_attr)
+                asset_path = self.__find_asset(assets_directory, new_file_attr)
                 with open(asset_path, "rb") as f:
                     assets[new_file_attr] = f.read()
 
-                mesh.set("file", new_file_attr)
+                element.set("file", new_file_attr)
         # Convert the modified XML tree back to a string
         modified_xml = ET.tostring(root, encoding="unicode")
 
@@ -203,7 +233,7 @@ class BatchVisualizer:
         geom_group: int,
         alpha: float,
         off_res: tuple[int, int],
-    ) -> mj.MjModel:
+    ):
         """
         Generate a combined MuJoCo model from multiple instances of the given model.
 
@@ -215,10 +245,10 @@ class BatchVisualizer:
         :return: The generated MuJoCo model.
         """
 
-        mjcf_model = mjcf.RootElement()
+        self.mjcf_model = mjcf.RootElement()
 
         # Add white sky
-        skybox = mjcf_model.asset.add("texture")
+        skybox = self.mjcf_model.asset.add("texture")
         skybox.name = "skybox"
         skybox.type = "skybox"
         skybox.width = 512
@@ -236,21 +266,20 @@ class BatchVisualizer:
             attached_mjcf_model = mjcf.from_path(model_path)
             attached_mjcf_model.model = prefix
             if i > 0:
-                for light in attached_mjcf_model.find_all("light"):
-                    light.remove()
-                for camera in attached_mjcf_model.find_all("camera"):
-                    camera.remove()
+                elements_to_remove = attached_mjcf_model.find_all("light") + attached_mjcf_model.find_all("camera")
+                for element in elements_to_remove:
+                    element.remove()
+                attached_mjcf_model.visual.remove()
             # Attach the model
-            site = mjcf_model.worldbody.add("site")
+            site = self.mjcf_model.worldbody.add("site")
             site.attach(attached_mjcf_model)
 
         # Change color in all material settings
-        for material in mjcf_model.find_all("material"):
+        for material in self.mjcf_model.find_all("material"):
             if material.rgba is not None:
                 material.rgba[3] *= alpha
-
         # Change color and collision properties for all geometries
-        for g in mjcf_model.find_all("geom"):
+        for g in self.mjcf_model.find_all("geom"):
             # Removes geometries not from the provided geometry group
             # Discards collision geometries etc.
 
@@ -277,21 +306,14 @@ class BatchVisualizer:
                 g.dclass.geom.rgba[3] *= alpha
 
         # Removing all existing keyframes, since they are invalid
-        keyframe = mjcf_model.keyframe
+        keyframe = self.mjcf_model.keyframe
         for child in keyframe.all_children():
             keyframe.remove(child)
 
         # Remove all exclude contact pairs
-        mjcf_model.contact.remove(True)
-        mjcf_model.visual.__getattr__("global").offwidth = off_res[0]
-        mjcf_model.visual.__getattr__("global").offheight = off_res[1]
-
-        edited_xml, assets = self.remove_high_level_body_tags(
-            mjcf_model.to_xml_string(),
-            os.path.split(model_path)[0],
-        )
-        # Build and return mujoco model
-        return mj.MjModel.from_xml_string(edited_xml, assets)
+        self.mjcf_model.contact.remove(True)
+        self.mjcf_model.visual.__getattr__("global").offwidth = off_res[0]
+        self.mjcf_model.visual.__getattr__("global").offheight = off_res[1]
 
     def add_markers(
         self,
