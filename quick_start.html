@@ -1,0 +1,249 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quick start &mdash; mjinx 0.1.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/custom.css?v=3cbe8de9" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=a58bc63e"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script async="async" src="_static/mathjax/tex-chtml.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Components" href="components.html" />
+    <link rel="prev" title="Installation" href="installation.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            mjinx
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Quick start</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#building-the-problem">Building the problem</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#task-component">Task component</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#barrier-component">Barrier component</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#solving-the-problem">Solving the problem</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#solver">Solver</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#configuration-utilities">Configuration utilities</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#jax-magic">Jax Magic</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="components.html">Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="problem.html">Problem</a></li>
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="solvers.html">Solvers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="visualization.html">Visualization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="typing.html">Typing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="references.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="developer-notes.html">Developer notes</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">mjinx</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Quick start</li>
+      <li class="wy-breadcrumbs-aside">
+              <!-- User defined GitHub URL -->
+              <a href="https://github.com/based-robotics/mjinx/tree/docs/github_pages/docs/introduction.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="quick-start">
+<h1>Quick start<a class="headerlink" href="#quick-start" title="Link to this heading"></a></h1>
+<p>Inverse kinematics (IK) is the problem of finding desired joint configurations given a desired system state. <cite>mjinx</cite> simplifies the task of defining the desired (and undesired) system state using <cite>Components</cite>, and provides variety of solvers to solve the resulting problem.</p>
+<p>The core ideas would be demonstrated using a 7 DoF manipulator <cite>Kuka iiwa 14</cite></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">robot_descriptions.iiwa14_mj_description</span><span class="w"> </span><span class="kn">import</span> <span class="n">MJCF_PATH</span>
+<span class="n">mj_model</span> <span class="o">=</span> <span class="n">mj</span><span class="o">.</span><span class="n">MjModel</span><span class="o">.</span><span class="n">from_xml_path</span><span class="p">(</span><span class="n">MJCF_PATH</span><span class="p">)</span>
+<span class="n">mjx_model</span> <span class="o">=</span> <span class="n">mjx</span><span class="o">.</span><span class="n">put_model</span><span class="p">(</span><span class="n">mj_model</span><span class="p">)</span>
+<span class="n">ee_name</span> <span class="o">=</span> <span class="s2">&quot;link7&quot;</span>
+</pre></div>
+</div>
+<figure class="align-default" id="id1">
+<img alt="Kuka iiwa 14 manipulator" src="_images/kuka_iiwa_14.png" />
+<figcaption>
+<p><span class="caption-text">Fig 1. Kuka Iiwa 14 manipulator.</span><a class="headerlink" href="#id1" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<section id="building-the-problem">
+<h2>Building the problem<a class="headerlink" href="#building-the-problem" title="Link to this heading"></a></h2>
+<p>To start composing the problem, you need to create the instance of the <a class="reference internal" href="problem.html#mjinx.problem.Problem" title="mjinx.problem.Problem"><code class="xref py py-class docutils literal notranslate"><span class="pre">Problem</span></code></a> class, which takes a <cite>mujoco.mjx.Model</cite>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">problem</span> <span class="o">=</span> <span class="n">Problem</span><span class="p">(</span><span class="n">mjx_model</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Each problem is composed via _Components_. They always represent a function, but those functions have different meaning and purpose for each of component. However, all of them has name, gain (a.k.a weight in the problem), and mask to select desirable elements among all that component might include. For the details, see <a class="reference internal" href="components.html#mjinx.components._base.Component" title="mjinx.components._base.Component"><code class="xref py py-class docutils literal notranslate"><span class="pre">Component</span></code></a>.</p>
+<section id="task-component">
+<h3>Task component<a class="headerlink" href="#task-component" title="Link to this heading"></a></h3>
+<p>Let’s start with the <em>desired behavior</em>. In <cite>mjinx</cite> it could be specified using notion of <a class="reference internal" href="tasks.html#mjinx.components.tasks._base.Task" title="mjinx.components.tasks._base.Task"><code class="xref py py-class docutils literal notranslate"><span class="pre">Task</span></code></a>. <cite>Task</cite> represents a non-negative function of state and time <span class="math notranslate nohighlight">\(f(q, t)\)</span>, which controller should keep as close to <span class="math notranslate nohighlight">\(0\)</span> as possible. The weight of the tasks are specified by two parameters:</p>
+<ol class="arabic simple">
+<li><p><cite>gain</cite> – weight of the function <span class="math notranslate nohighlight">\(f\)</span> itself. It’s common for all the components.</p></li>
+<li><p><cite>cost</cite> – weight of the residual in velocity space, used only by <a class="reference internal" href="solvers.html#mjinx.solvers._local_ik.LocalIKSolver" title="mjinx.solvers._local_ik.LocalIKSolver"><code class="xref py py-class docutils literal notranslate"><span class="pre">Local</span> <span class="pre">IK</span> <span class="pre">Solver</span></code></a>.</p></li>
+</ol>
+<p>Suppose, you want to solve a task of moving an end-effector in a desired position. In <cite>mjinx</cite>, you can do it by adding a <a class="reference internal" href="tasks.html#mjinx.components.tasks._obj_frame_task.FrameTask" title="mjinx.components.tasks._obj_frame_task.FrameTask"><code class="xref py py-class docutils literal notranslate"><span class="pre">FrameTask</span></code></a> which is defined for the end-effector:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">frame_task</span> <span class="o">=</span> <span class="n">FrameTask</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;ee_task&quot;</span><span class="p">,</span> <span class="n">cost</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">gain</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">body_name</span><span class="o">=</span><span class="n">ee_name</span><span class="p">)</span>
+<span class="n">problem</span><span class="o">.</span><span class="n">add_component</span><span class="p">(</span><span class="n">frame_task</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Simple, isn’t it? However, it is possible to specify the desired behaviour even further. For example, it would be nice if robot would move as little as possible. Then, it’s possible to add joint regularization task <a class="reference internal" href="tasks.html#mjinx.components.tasks._joint_task.JointTask" title="mjinx.components.tasks._joint_task.JointTask"><code class="xref py py-class docutils literal notranslate"><span class="pre">JointTask</span></code></a>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">joint_task</span> <span class="o">=</span> <span class="n">JointTask</span><span class="p">(</span><span class="s2">&quot;regularization&quot;</span><span class="p">,</span> <span class="n">cost</span><span class="o">=</span><span class="mf">1e-1</span><span class="p">,</span> <span class="n">gain</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="n">problem</span><span class="o">.</span><span class="n">add_component</span><span class="p">(</span><span class="n">joint_task</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="barrier-component">
+<h3>Barrier component<a class="headerlink" href="#barrier-component" title="Link to this heading"></a></h3>
+<p>Apart from specifying <em>desired</em> behavior, usually it’s necessary to avoid <em>undesired</em> one: the one, which should never occur under any circumstances. <cite>mjinx</cite> handles it by introducing <a class="reference internal" href="barriers.html#mjinx.components.barriers._base.Barrier" title="mjinx.components.barriers._base.Barrier"><code class="xref py py-class docutils literal notranslate"><span class="pre">Barrier</span></code></a>. <cite>Barrier</cite> represents a function <span class="math notranslate nohighlight">\(h(q, t)\)</span>, that has to be strictly greater than zero: <span class="math notranslate nohighlight">\(h(q, t) &gt; 0\)</span>. Its weight is specified by only <cite>gain</cite> parameter.</p>
+<p>For example, very natural thing to ask – don’t break joint limits. The <a class="reference internal" href="barriers.html#mjinx.components.barriers._joint_barrier.JointBarrier" title="mjinx.components.barriers._joint_barrier.JointBarrier"><code class="xref py py-class docutils literal notranslate"><span class="pre">JointBarrier</span></code></a> could handle this:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">joints_barrier</span> <span class="o">=</span> <span class="n">JointBarrier</span><span class="p">(</span><span class="s2">&quot;jnt_barrier&quot;</span><span class="p">,</span> <span class="n">gain</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+<span class="n">problem</span><span class="o">.</span><span class="n">add_component</span><span class="p">(</span><span class="n">joints_barrier</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Finally, when we done bulding <a class="reference internal" href="problem.html#mjinx.problem.Problem" title="mjinx.problem.Problem"><code class="xref py py-class docutils literal notranslate"><span class="pre">Problem</span></code></a>, it’s time to compile it as follows:
+.. code-block:: python</p>
+<blockquote>
+<div><p>problem_data: ProblemData = problem.compile()</p>
+</div></blockquote>
+<p>This command will compile all the components (compiling <a class="reference internal" href="components.html#mjinx.components._base.Component" title="mjinx.components._base.Component"><code class="xref py py-class docutils literal notranslate"><span class="pre">Component</span></code></a> means building corresponding <a class="reference internal" href="components.html#mjinx.components._base.JaxComponent" title="mjinx.components._base.JaxComponent"><code class="xref py py-class docutils literal notranslate"><span class="pre">JaxComponent</span></code></a>) and return instance of <code class="xref py py-class docutils literal notranslate"><span class="pre">ProblemData</span></code>. This action is required each time we change a <a class="reference internal" href="components.html#mjinx.components._base.Component" title="mjinx.components._base.Component"><code class="xref py py-class docutils literal notranslate"><span class="pre">Component</span></code></a>, for exampe desired frame in <a class="reference internal" href="tasks.html#mjinx.components.tasks._obj_frame_task.FrameTask" title="mjinx.components.tasks._obj_frame_task.FrameTask"><code class="xref py py-class docutils literal notranslate"><span class="pre">FrameTask</span></code></a>.</p>
+</section>
+</section>
+<section id="solving-the-problem">
+<h2>Solving the problem<a class="headerlink" href="#solving-the-problem" title="Link to this heading"></a></h2>
+<section id="solver">
+<h3>Solver<a class="headerlink" href="#solver" title="Link to this heading"></a></h3>
+<p>To solve the resulting problem, we need some solver. All solvers are derived from the <code class="xref py py-class docutils literal notranslate"><span class="pre">Solver</span></code> class. Let’s take, for example, <code class="xref py py-class docutils literal notranslate"><span class="pre">LocalIKSolver</span></code>:
+.. code-block:: python</p>
+<blockquote>
+<div><p>solver = LocalIKSolver(mjx_model, maxiter=20)
+solver_data = solver.init()</p>
+</div></blockquote>
+<p>The <cite>solver_data</cite> contains arbitrary data structure, where solver could store and update it’s internal state. For example, <code class="xref py py-class docutils literal notranslate"><span class="pre">LocalIKData</span></code> stores a previous solution for a warm start.</p>
+<p>Now, to solve the problem, we need to provide solver with state <cite>q</cite>, <cite>solver_data</cite>, and <cite>problem_data</cite>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">opt_solution</span><span class="p">,</span> <span class="n">solver_data</span> <span class="o">=</span> <span class="n">solve_jit</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">solver_data</span><span class="p">,</span> <span class="n">problem_data</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><cite>opt_solution</cite> always contains optimal joint velocity <cite>v_opt</cite>, but might additionally contain other paraters, for example <cite>status</cite> and <cite>error</cite> for the <code class="xref py py-class docutils literal notranslate"><span class="pre">LocalIKSolution</span></code>.</p>
+</section>
+<section id="configuration-utilities">
+<h3>Configuration utilities<a class="headerlink" href="#configuration-utilities" title="Link to this heading"></a></h3>
+<p>Usually, those problems are solved in the loop. Therefore, we need a way to update the state of the model. The <code class="xref py py-mod docutils literal notranslate"><span class="pre">mjinx.configuration</span></code> module contains many utility functions that are used all over the <cite>mjinx</cite>, and also might be useful for you. As such, the function <code class="xref py py-func docutils literal notranslate"><span class="pre">mjinx.configuration.integrate</span></code> allows to integrate system using the model integrator and taking into account joint types.</p>
+<p>As such, we could update our state and get new configuration:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">q</span> <span class="o">=</span> <span class="n">mjinx</span><span class="o">.</span><span class="n">configuraiton</span><span class="o">.</span><span class="n">integrate</span><span class="p">(</span>
+   <span class="n">mjx_model</span><span class="p">,</span>
+   <span class="n">q</span><span class="p">,</span>
+   <span class="n">velocity</span><span class="o">=</span><span class="n">opt_solution</span><span class="o">.</span><span class="n">v_opt</span><span class="p">,</span>
+   <span class="n">dt</span><span class="o">=</span><span class="n">dt</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>Loop the previous two steps, optionally update <cite>Task</cite>’s desired positions, and you get a velocity controller for the manipulator!</p>
+</section>
+</section>
+<section id="jax-magic">
+<h2>Jax Magic<a class="headerlink" href="#jax-magic" title="Link to this heading"></a></h2>
+<p>Reasonable question might arise: but where does <cite>jax</cite> advantage comes into play?</p>
+<p>The key thing to keep in mind that all methods of <cite>Solver</cite> class and <cite>configuration</cite> functions are jax-compatible. This implies that, for example, you can jit-compile them:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">solve_jit</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span><span class="n">solver</span><span class="o">.</span><span class="n">solve</span><span class="p">)</span>
+<span class="n">integrate_jit</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span><span class="n">integrate</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Or you can do automatic vectorization, even for components of the problem:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Vmap init function</span>
+<span class="n">solver_data</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">vmap</span><span class="p">(</span><span class="n">solver</span><span class="o">.</span><span class="n">init</span><span class="p">,</span> <span class="n">in_axes</span><span class="o">=</span><span class="mi">0</span><span class="p">)(</span><span class="n">v_init</span><span class="o">=</span><span class="n">jnp</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">N_batch</span><span class="p">,</span> <span class="n">mjx_model</span><span class="o">.</span><span class="n">nv</span><span class="p">)))</span>
+
+<span class="c1"># Create an empty (filled with None) problem_data and set vmap-ed fields via axes to vmap along</span>
+<span class="c1"># The empty_problem_data would be a</span>
+<span class="k">with</span> <span class="n">problem</span><span class="o">.</span><span class="n">set_vmap_dimension</span><span class="p">()</span> <span class="k">as</span> <span class="n">empty_problem_data</span><span class="p">:</span>
+   <span class="n">empty_problem_data</span><span class="o">.</span><span class="n">components</span><span class="p">[</span><span class="s2">&quot;ee_task&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">target_frame</span> <span class="o">=</span> <span class="mi">0</span>
+
+<span class="c1"># Vmapping solve and integrate functions.</span>
+<span class="n">solve_jit</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span>
+   <span class="n">jax</span><span class="o">.</span><span class="n">vmap</span><span class="p">(</span>
+      <span class="n">solver</span><span class="o">.</span><span class="n">solve</span><span class="p">,</span>
+      <span class="n">in_axes</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">empty_problem_data</span><span class="p">),</span>
+   <span class="p">)</span>
+<span class="p">)</span>
+<span class="n">integrate_jit</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span><span class="n">jax</span><span class="o">.</span><span class="n">vmap</span><span class="p">(</span><span class="n">integrate</span><span class="p">,</span> <span class="n">in_axes</span><span class="o">=</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="kc">None</span><span class="p">)))</span>
+</pre></div>
+</div>
+<p>This example will result in parallel computation of many desired trajectories at once.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="installation.html" class="btn btn-neutral float-left" title="Installation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="components.html" class="btn btn-neutral float-right" title="Components" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 Ivan Domrachev, Simeon Nedelchev..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
